@@ -26,6 +26,15 @@ import { Toasts } from './ui/Toasts';
 import { GLOVE_SVG } from './sports/icons';
 import { getAchievement } from './progression/achievements';
 import { getUnlock } from './progression/unlocks';
+import { TT_TUNING, TT_TUNING_META } from './tabletennis/ttTuning';
+import { BB_TUNING, BB_TUNING_META } from './basketball/bbTuning';
+import { FB_TUNING, FB_TUNING_META } from './frisbee/frisbeeTuning';
+import { SW_TUNING, SW_TUNING_META } from './swordplay/swordTuning';
+// Registers table tennis, basketball, frisbee and swordplay achievements, unlocks, XP and stats columns before any screen reads them.
+import './tabletennis/ttProgression';
+import './basketball/bbProgression';
+import './frisbee/fbProgression';
+import './swordplay/swProgression';
 
 /**
  * Boot: renderer, saves and settings, controllers, screens, and the one render loop.
@@ -62,6 +71,10 @@ async function boot(): Promise<void> {
     return null;
   };
   const debug = new DebugPanel(ui, (key: TuningKey) => currentMatch()?.sport?.onTuning?.(key));
+  debug.addTuning('Table tennis', TT_TUNING, TT_TUNING_META, key => currentMatch()?.sport?.onTuning?.(key));
+  debug.addTuning('Basketball', BB_TUNING, BB_TUNING_META, key => currentMatch()?.sport?.onTuning?.(key));
+  debug.addTuning('Frisbee', FB_TUNING, FB_TUNING_META, key => currentMatch()?.sport?.onTuning?.(key));
+  debug.addTuning('Swordplay', SW_TUNING, SW_TUNING_META, key => currentMatch()?.sport?.onTuning?.(key));
 
   /* ---------- quality + governor ---------- */
   let quality: QualityLevel = settings.get().quality;
@@ -86,17 +99,28 @@ async function boot(): Promise<void> {
   let offSample: (() => void) | null = null;
   let inMatch = false;
   if (settings.get().backend === 'joycon') preloadJoyCon();
+  const make = (kind: BackendKind): InputBackend => {
+    let b = backends[kind];
+    if (!b) {
+      b = kind === 'mouse' ? new MouseBackend(canvas) : kind === 'phone' ? new PhoneBackend() : new JoyConBackend();
+      backends[kind] = b;
+    }
+    return b;
+  };
+
+  // Player 2 (split controllers): its own backend and SwingDetector, never the same kind as player 1.
+  const swing2 = new SwingDetector();
+  let second: InputBackend | null = null;
+  let offSecond: (() => void) | null = null;
+  const releaseSecond = (): void => { offSecond?.(); offSecond = null; second = null; swing2.enabled = false; };
 
   const input: InputHub = {
     get active() { return active; },
     swing,
     get: k => backends[k],
     async select(kind) {
-      let b = backends[kind];
-      if (!b) {
-        b = kind === 'mouse' ? new MouseBackend(canvas) : kind === 'phone' ? new PhoneBackend() : new JoyConBackend();
-        backends[kind] = b;
-      }
+      const b = make(kind);
+      if (second === b) releaseSecond();
       if (active !== b) {
         offSample?.();
         const bk = b;
@@ -119,6 +143,27 @@ async function boot(): Promise<void> {
       const cal = await calibration.run(b, b.kind === 'mouse' ? 0 : TUNING.calibrationMs);
       swing.setCalibration(cal);
       nav.recentre();
+    },
+    second: {
+      get backend() { return second; },
+      swing: swing2,
+      async select(kind) {
+        if (active?.kind === kind) throw new Error('Player 2 needs a different controller than player 1');
+        const b = make(kind);
+        if (second !== b) {
+          releaseSecond();
+          offSecond = b.onSample(s => { if (inMatch) swing2.feed(s); });
+          second = b;
+        }
+        if (!b.connected) await b.connect();
+        return b;
+      },
+      async calibrate() {
+        const b = second;
+        if (!b) return;
+        swing2.setCalibration(await calibration.run(b, b.kind === 'mouse' ? 0 : TUNING.calibrationMs));
+      },
+      release: releaseSecond
     }
   };
 
@@ -145,7 +190,8 @@ async function boot(): Promise<void> {
     body.toggle('calm', s.reducedMotion);
     screens.instant = s.reducedMotion;
     menuBg.calm = s.reducedMotion;
-    swing.prefs = { sensitivity: s.sensitivity, invertHook: s.invertHook };
+    swing.prefs = { sensitivity: s.sensitivity, invertHook: s.invertHook, handed: s.handed };
+    swing2.prefs = { sensitivity: s.sensitivity, invertHook: s.invertHook, handed: 'right' };
     governor.enabled = s.autoQuality && inMatch;
     if (s.quality !== savedQuality) { savedQuality = s.quality; quality = s.quality; applyQuality(); }
     fpsEl.style.display = s.showFps ? 'block' : 'none';

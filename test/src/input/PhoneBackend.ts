@@ -5,8 +5,11 @@ import { ComplementaryFilter, qIdentity } from '../math/Filter';
 import { TUNING } from '../tuning';
 import { isLocalDev, signalUrl } from './signal';
 
-/** Packet sent by phone.ts: [phoneTimeMs, ax, ay, az, gx, gy, gz, trigger, a, b], already in the game's device frame. Older phone pages omit b. */
-type ImuPacket = [number, number, number, number, number, number, number, 0 | 1, 0 | 1, (0 | 1)?];
+/**
+ * Packet sent by phone.ts: [phoneTimeMs, ax, ay, az, gx, gy, gz, trigger, a, b, stickX, stickY], already in the
+ * game's device frame. Older phone pages omit b and the stick.
+ */
+type ImuPacket = [number, number, number, number, number, number, number, 0 | 1, 0 | 1, (0 | 1)?, number?, number?];
 interface SignalData { sdp?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit }
 interface SignalMsg { type: string; data?: SignalData }
 
@@ -104,7 +107,7 @@ export class PhoneBackend extends BaseBackend {
       this.latencyMs += ((performance.now() - msg.pong) / 2 - this.latencyMs) * 0.3;
       return;
     }
-    const [pt, ax, ay, az, gx, gy, gz, trig, a, b] = msg;
+    const [pt, ax, ay, az, gx, gy, gz, trig, a, b, sx, sy] = msg;
     const dt = this.lastPhoneT ? (pt - this.lastPhoneT) / 1000 : 1 / 60;
     this.lastPhoneT = pt;
     const gyro: Vec3 = [gx - this.bias[0], gy - this.bias[1], gz - this.bias[2]];
@@ -113,7 +116,8 @@ export class PhoneBackend extends BaseBackend {
     const sample: InputSample = {
       t: performance.now(), accel, gyro,
       orientation: this.filter.update(gyro, accel, dt),
-      buttons: { trigger: trig === 1, a: a === 1, b: b === 1 }
+      buttons: { trigger: trig === 1, a: a === 1, b: b === 1 },
+      stick: typeof sx === 'number' && typeof sy === 'number' ? [sx, sy] : undefined
     };
     this.emit(sample);
   }

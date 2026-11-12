@@ -20,6 +20,17 @@ export interface InputHub {
   get(kind: BackendKind): InputBackend | undefined;
   /** Hold-still calibration overlay; instant for the mouse. */
   calibrate(): Promise<void>;
+  /** Player 2's controller for split-controller modes. It must be a different kind than player 1's. */
+  readonly second: SecondHub;
+}
+
+export interface SecondHub {
+  readonly backend: InputBackend | null;
+  readonly swing: SwingDetector;
+  select(kind: BackendKind): Promise<InputBackend>;
+  calibrate(): Promise<void>;
+  /** Stop routing player 2's samples (leaving the match). The backend stays connected for next time. */
+  release(): void;
 }
 
 /** Everything a screen may need. Built once in main.ts. */

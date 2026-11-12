@@ -1,6 +1,6 @@
 import { defaultBuddy, validateBuddy, FAV_COLORS } from '../buddy/BuddyConfig';
 import {
-  DEFAULT_SETTINGS, MAX_PROFILES, PROFILE_SETTING_KEYS, SCHEMA_VERSION,
+  DEFAULT_LOADOUT, DEFAULT_SETTINGS, MAX_PROFILES, PROFILE_SETTING_KEYS, SCHEMA_VERSION,
   type ModeStats, type Profile, type SaveData, type SettingsData
 } from './types';
 
@@ -63,7 +63,7 @@ export function newProfileId(): string {
 export function newProfile(name: string, colorIndex = 0, buddy = defaultBuddy(name, colorIndex % FAV_COLORS.length)): Profile {
   return {
     id: newProfileId(), name: buddy.name, buddy, settings: {}, unlocked: [], achievements: {}, xp: 0, stats: {},
-    loadout: { laneLook: 'classic', ballSkin: 'solid', trail: 'classic' }, createdAt: Date.now()
+    loadout: { ...DEFAULT_LOADOUT }, createdAt: Date.now()
   };
 }
 
@@ -90,6 +90,7 @@ export function sanitizeSettings(raw: unknown, base: SettingsData = DEFAULT_SETT
     bigText: bool(s.bigText, base.bigText),
     colorblind: bool(s.colorblind, base.colorblind),
     gutterAssist: bool(s.gutterAssist, base.gutterAssist),
+    shotAssist: ([0, 1, 2, 3] as const).find(v => v === s.shotAssist) ?? base.shotAssist,
     master: num(s.master, base.master, 0, 1),
     music: num(s.music, base.music, 0, 1),
     sfx: num(s.sfx, base.sfx, 0, 1),
@@ -144,7 +145,16 @@ export function sanitizeProfile(raw: unknown): Profile | null {
     achievements: ach,
     xp: Math.floor(num(p.xp, 0, 0)),
     stats: sanitizeStats(p.stats),
-    loadout: { laneLook: str(lo.laneLook, 'classic'), ballSkin: str(lo.ballSkin, 'solid'), trail: str(lo.trail, 'classic') },
+    loadout: {
+      laneLook: str(lo.laneLook, 'classic'), ballSkin: str(lo.ballSkin, 'solid'), trail: str(lo.trail, 'classic'),
+      paddle: str(lo.paddle, DEFAULT_LOADOUT.paddle), table: str(lo.table, DEFAULT_LOADOUT.table), hall: str(lo.hall, DEFAULT_LOADOUT.hall),
+      hoopBall: str(lo.hoopBall, DEFAULT_LOADOUT.hoopBall), jersey: str(lo.jersey, DEFAULT_LOADOUT.jersey),
+      net: str(lo.net, DEFAULT_LOADOUT.net), court: str(lo.court, DEFAULT_LOADOUT.court),
+      dog: str(lo.dog, DEFAULT_LOADOUT.dog), disc: str(lo.disc, DEFAULT_LOADOUT.disc),
+      discTrail: str(lo.discTrail, DEFAULT_LOADOUT.discTrail), fbCourse: str(lo.fbCourse, DEFAULT_LOADOUT.fbCourse),
+      blade: str(lo.blade, DEFAULT_LOADOUT.blade), bladeTrail: str(lo.bladeTrail, DEFAULT_LOADOUT.bladeTrail),
+      arena: str(lo.arena, DEFAULT_LOADOUT.arena), outfit: str(lo.outfit, DEFAULT_LOADOUT.outfit)
+    },
     createdAt: num(p.createdAt, Date.now(), 0)
   };
 }

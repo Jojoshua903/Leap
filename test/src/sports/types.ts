@@ -23,6 +23,8 @@ export interface ModeOptionDef {
   labelKey: string;
   choices: Array<{ value: OptionValue; labelKey: string }>;
   default: OptionValue;
+  /** Only show this option when the player count is in range (e.g. the AI level only for 1 player). */
+  players?: [number, number];
 }
 
 export interface MatchPlayer {
@@ -33,6 +35,9 @@ export interface MatchPlayer {
   handicap: number;
 }
 
+/** Cosmetic picks for a match, keyed by unlock category (lane, ball, trail, paddle, table, hall). */
+export type Cosmetics = Record<string, string>;
+
 export interface MatchSetup {
   sport: SportId;
   mode: ModeId;
@@ -42,6 +47,10 @@ export interface MatchSetup {
   laneLook: string;
   ballSkin: string;
   trail: string;
+  /** Every cosmetic pick, including the bowling ones above. */
+  cosmetics?: Cosmetics;
+  /** Per-player controller for local multiplayer with split controllers (index = player). */
+  controllers?: BackendKind[];
 }
 
 export interface PlayerResult {
@@ -55,6 +64,8 @@ export interface PlayerResult {
   rolls: number[];
   /** Sport-specific counters, e.g. bowling: strikes, spares, gutters, bestStrikeStreak, hookStrikes, pins. */
   stats: Record<string, number>;
+  /** Optional per-turn breakdown for the results screen (already translated), e.g. Frisbee Dog throws or a golf scorecard. */
+  breakdown?: { head: string[]; rows: string[][] };
 }
 
 export interface MatchSummary {
@@ -67,6 +78,21 @@ export interface MatchSummary {
   winner: number;
   /** history[f][p] = cumulative total of player p after frame f (handicap excluded). */
   history: number[][];
+  /** Optional sub-mode, e.g. the Frisbee Golf course, for per-variant personal bests. */
+  variant?: string;
+}
+
+/** The second local player's controller (split-controller modes). */
+export interface SecondInput {
+  backend: () => InputBackend | null;
+  swing: SwingDetector;
+}
+
+/** F3 debug hooks a scene can use: a text block and a small drawing. */
+export interface SceneDebug {
+  readonly visible: boolean;
+  text(s: string): void;
+  viz(draw: ((ctx: CanvasRenderingContext2D, w: number, h: number) => void) | null): void;
 }
 
 /** Everything a sport scene gets from the host. */
@@ -76,10 +102,15 @@ export interface SceneContext {
   setup: MatchSetup;
   backend: () => InputBackend | null;
   swing: SwingDetector;
+  /** Player 2's controller when the mode splits controllers and two people play; otherwise null. */
+  second: SecondInput | null;
   quality: () => QualityLevel;
   reducedMotion: () => boolean;
   gutterAssist: () => boolean;
+  /** Basketball Shot Assist, 0 Off … 3 Very High. */
+  shotAssist: () => 0 | 1 | 2 | 3;
   handed: () => 'right' | 'left';
+  debug: SceneDebug;
   /** Ask the host to show the first-throw tutorial (it knows whether it has been seen). */
   onFirstTurn: () => void;
   /** Called after each throw so the host can close the tutorial. */
@@ -107,6 +138,8 @@ export interface SportScene {
   onTuning?(key: string): void;
   /** Optional: toggle the in-match scoreboard (Tab). */
   toggleScores?(): void;
+  /** Optional: a key the scene wants (e.g. skipping a replay). Return true if used. */
+  onKey?(e: KeyboardEvent): boolean;
   dispose(): void;
 }
 
@@ -127,6 +160,12 @@ export interface ModeDef {
   /** Lazy so the registry stays light (and testable in Node). null = coming soon. */
   scene: (() => Promise<SceneFactory>) | null;
   options: ModeOptionDef[];
+  /** Offer the practice toggle in mode setup. */
+  practice: boolean;
+  /** With 2+ players, each player picks their own controller. */
+  splitControllers: boolean;
+  /** Unlock categories shown as cosmetics in mode setup, in order. */
+  cosmetics: string[];
 }
 
 export interface SportDef {

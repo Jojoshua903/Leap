@@ -1,9 +1,10 @@
 /**
- * Shared Web Audio graph: one AudioContext, three volume buses and music ducking.
+ * Shared Web Audio graph: one AudioContext, three volume buses (plus ambience) and music ducking.
  *
  *   music ─► duck ─┐
  *   sfx  ──────────┼─► master ─► destination
  *   ui   ──────────┘
+ *   ambience ─► sfx   (crowd murmur, rally bed: its own level so it can swell without touching effects)
  *
  * The context is created on the first user input (browsers block audio before that).
  * Until then every getter returns null and sound calls quietly do nothing.
@@ -18,6 +19,7 @@ class MixerImpl {
   masterBus: GainNode | null = null;
   musicBus: GainNode | null = null;
   sfxBus: GainNode | null = null;
+  ambienceBus: GainNode | null = null;
   private duckNode: GainNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
   private levels: MixLevels = { master: 0.8, music: 0.6, sfx: 0.9, muted: false };
@@ -39,6 +41,9 @@ class MixerImpl {
       this.musicBus.connect(this.duckNode);
       this.sfxBus = ctx.createGain();
       this.sfxBus.connect(this.masterBus);
+      this.ambienceBus = ctx.createGain();
+      this.ambienceBus.gain.value = 0;
+      this.ambienceBus.connect(this.sfxBus);
       this.applyLevels(0);
       const fns = this.readyFns; this.readyFns = [];
       for (const f of fns) f();
@@ -108,3 +113,13 @@ class MixerImpl {
 }
 
 export const Mixer = new MixerImpl();
+
+/**
+ * Ambience level 0..1 (e.g. the crowd getting louder during a long rally), smoothed over `tc` seconds.
+ * It sits under the effects bus, so the Effects slider and mute still apply.
+ */
+export function setAmbience(level: number, tc = 0.4): void {
+  const ctx = Mixer.ctx, g = Mixer.ambienceBus;
+  if (!ctx || !g) return;
+  g.gain.setTargetAtTime(Math.max(0, Math.min(1, level)), ctx.currentTime, tc);
+}

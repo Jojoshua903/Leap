@@ -5,18 +5,30 @@ import { vLen } from '../math/Filter';
 
 const HISTORY = 360;
 
-/** F3 panel: live sensor graphs, backend stats, last swing values and live tuning sliders. */
+type Meta = { min: number; max: number; step: number };
+type VizFn = (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+
+/**
+ * F3 panel: live sensor graphs, backend stats, last swing values and live tuning sliders.
+ * Scenes can add a text block and a small drawing (table tennis shows ball speed, spin, the last
+ * contact on the paddle face, the AI level and its predicted landing point). Extra tuning tables
+ * (like TT_TUNING) get their own slider group.
+ */
 export class DebugPanel {
   private readonly root: HTMLDivElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly stats: HTMLPreElement;
   private readonly swingEl: HTMLPreElement;
+  private readonly extraEl: HTMLPreElement;
+  private readonly vizCanvas: HTMLCanvasElement;
+  private readonly vizCtx: CanvasRenderingContext2D;
   private readonly accel: number[] = [];
   private readonly gyro: number[] = [];
   private backend: InputBackend | null = null;
   private phase = 'idle';
   private lastText = 0;
+  private vizFn: VizFn | null = null;
   visible = false;
 
   constructor(ui: HTMLElement, private readonly onTuning: (key: TuningKey) => void) {
@@ -30,33 +42,59 @@ export class DebugPanel {
     legend.innerHTML = '<span style="color:#ff8a3c">■ accel |a| (m/s², 0–40)</span> <span style="color:#3ff2ff">■ gyro |ω| (rad/s, 0–25)</span>';
     this.stats = document.createElement('pre');
     this.swingEl = document.createElement('pre');
+    this.extraEl = document.createElement('pre');
+    this.vizCanvas = document.createElement('canvas'); this.vizCanvas.width = 340; this.vizCanvas.height = 150;
+    this.vizCanvas.style.display = 'none';
+    this.vizCtx = this.vizCanvas.getContext('2d') as CanvasRenderingContext2D;
     const sliders = document.createElement('div'); sliders.className = 'sliders';
-    for (const key of Object.keys(TUNING_META) as TuningKey[]) sliders.appendChild(this.slider(key));
-    this.root.append(h, this.canvas, legend, this.stats, this.swingEl, sliders);
+    for (const key of Object.keys(TUNING_META) as TuningKey[]) {
+      const meta = TUNING_META[key];
+      if (meta) sliders.appendChild(this.slider(TUNING as Record<string, number>, key, meta, () => this.onTuning(key)));
+    }
+    this.root.append(h, this.canvas, legend, this.stats, this.swingEl, this.extraEl, this.vizCanvas, sliders);
   }
 
-  private slider(key: TuningKey): HTMLElement {
-    const meta = TUNING_META[key];
+  private slider(table: Record<string, number>, key: string, meta: Meta, changed: () => void): HTMLElement {
     const row = document.createElement('label');
-    if (!meta) return row;
     const name = document.createElement('span'); name.textContent = key;
     const input = document.createElement('input');
     input.type = 'range'; input.min = String(meta.min); input.max = String(meta.max); input.step = String(meta.step);
-    input.value = String(TUNING[key]);
-    const val = document.createElement('code'); val.textContent = String(TUNING[key]);
+    input.value = String(table[key]);
+    const val = document.createElement('code'); val.textContent = String(table[key]);
     input.oninput = () => {
-      TUNING[key] = Number(input.value);
+      table[key] = Number(input.value);
       val.textContent = input.value;
-      this.onTuning(key);
+      changed();
     };
     row.append(name, input, val);
     return row;
+  }
+
+  /** Add a group of sliders for another tuning table (edited in place, like TUNING). */
+  addTuning<K extends string>(title: string, table: Record<K, number>, meta: Partial<Record<K, Meta>>, onChange: (key: K) => void): void {
+    const head = document.createElement('h4'); head.textContent = title;
+    const group = document.createElement('div'); group.className = 'sliders';
+    for (const key of Object.keys(meta) as K[]) {
+      const m = meta[key];
+      if (m) group.appendChild(this.slider(table as Record<string, number>, key, m, () => onChange(key)));
+    }
+    this.root.append(head, group);
   }
 
   toggle(): void { this.visible = !this.visible; this.root.classList.toggle('show', this.visible); }
 
   setBackend(b: InputBackend | null): void { this.backend = b; }
   setPhase(p: string): void { this.phase = p; }
+
+  /** Scene-provided lines under the swing block (empty string hides it). */
+  setExtra(text: string): void { if (this.visible) this.extraEl.textContent = text; }
+
+  /** Scene-provided drawing, redrawn every frame while the panel is open. */
+  setViz(fn: VizFn | null): void {
+    this.vizFn = fn;
+    this.vizCanvas.style.display = fn ? 'block' : 'none';
+    if (!fn) this.extraEl.textContent = '';
+  }
 
   feed(s: InputSample): void {
     this.accel.push(vLen(s.accel)); this.gyro.push(vLen(s.gyro));
@@ -88,6 +126,12 @@ export class DebugPanel {
     };
     line(this.accel, 40, '#ff8a3c');
     line(this.gyro, 25, '#3ff2ff');
+
+    if (this.vizFn) {
+      const vc = this.vizCtx, vw = this.vizCanvas.width, vh = this.vizCanvas.height;
+      vc.fillStyle = 'rgba(10,20,40,.85)'; vc.fillRect(0, 0, vw, vh);
+      this.vizFn(vc, vw, vh);
+    }
 
     const now = performance.now();
     if (now - this.lastText > 100) {

@@ -3,6 +3,8 @@
  * audio, achievements, stats and toasts subscribe without the game knowing about them.
  */
 import type { MatchSummary } from '../sports/types';
+import type { TTEventMap } from '../tabletennis/Rules';
+import type { BBEventMap } from '../basketball/bbEvents';
 
 export interface RollEvent {
   sport: string;
@@ -16,7 +18,13 @@ export interface RollEvent {
   practice: boolean;
 }
 
-export interface GameEvents {
+/**
+ * Table tennis adds serve, hit, bounce, netCord, point, gameWon, matchWon and rallyLength (see tabletennis/Rules.ts).
+ * Basketball adds shotReleased, rimHit, backboardHit, swish, basket, miss, steal, block, pass,
+ * possessionChange and its own gameWon payload (see basketball/bbEvents.ts).
+ */
+export interface GameEvents extends Omit<TTEventMap, 'gameWon'>, Omit<BBEventMap, 'gameWon'> {
+  gameWon: TTEventMap['gameWon'] | BBEventMap['gameWon'];
   roll: RollEvent;
   strike: RollEvent;
   spare: RollEvent;

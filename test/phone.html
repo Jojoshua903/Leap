@@ -20,6 +20,8 @@
     #a, #b { display: none; font-size: 20px; padding: 14px 30px; min-width: 96px; }
     #b { background: linear-gradient(#ffffff, #d9e6ee); color: #1d3a52; }
     #a.down, #b.down { transform: scale(.95); }
+    #pad { display: none; width: 34vw; height: 34vw; max-width: 170px; max-height: 170px; border-radius: 50%; background: rgba(255,255,255,.55); border: 4px solid #fff; position: relative; touch-action: none; }
+    #knob { position: absolute; left: 30%; top: 30%; width: 40%; height: 40%; border-radius: 50%; background: linear-gradient(#7fcff5, #3fa9f5); box-shadow: 0 4px 10px rgba(0,0,0,.2); pointer-events: none; }
   </style>
 </head>
 <body>
@@ -27,7 +29,7 @@
     <div id="status">Connecting…</div>
     <button id="start">Tap to enable motion</button>
     <button id="hold">HOLD TO THROW</button>
-    <div class="row"><button id="b">B · Back</button><button id="a">A</button></div>
+    <div class="row"><div id="pad"><div id="knob"></div></div><button id="b">B · Back</button><button id="a">A</button></div>
     <div id="rate"></div>
   </main>
   <script type="module" src="/src/phone/phone.ts"></script>

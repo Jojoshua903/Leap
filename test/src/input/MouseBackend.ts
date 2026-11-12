@@ -26,6 +26,11 @@ export class MouseBackend extends BaseBackend {
 
   constructor(el: HTMLElement) { super(); this.el = el; }
 
+  /** Raw pointer state (client px + buttons) for modes that drive something directly, like the table-tennis paddle. */
+  get pointer(): { x: number; y: number; left: boolean; right: boolean } {
+    return { x: this.x, y: this.y, left: this.trigger, right: this.a };
+  }
+
   async connect(): Promise<void> {
     if (this.connected) return;
     const on = <K extends keyof WindowEventMap>(type: K, f: (e: WindowEventMap[K]) => void): void => {

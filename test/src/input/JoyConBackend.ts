@@ -17,6 +17,24 @@ const remap = (v: { x: number; y: number; z: number }): Vec3 => {
   return [s[AXES[0][0]] * AXES[0][1], s[AXES[1][0]] * AXES[1][1], s[AXES[2][0]] * AXES[2][1]];
 };
 
+/**
+ * Stick → movement (x right, y forward) for a Joy-Con held vertically, stick on top. If a direction comes
+ * out mirrored in basketball, flip the sign here.
+ */
+const STICK_SIGN: [number, number] = [1, 1];
+const STICK_DEAD = 0.18;
+function readStick(d: JoyConInputDetail): [number, number] | undefined {
+  const st = d.analogStickRight ?? d.analogStickLeft;
+  if (!st) return undefined;
+  let x = parseFloat(st.horizontal) * STICK_SIGN[0], y = parseFloat(st.vertical) * STICK_SIGN[1];
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+  const m = Math.hypot(x, y);
+  if (m < STICK_DEAD) return [0, 0];
+  const k = Math.min(1, (m - STICK_DEAD) / (1 - STICK_DEAD)) / m;
+  x *= k; y *= k;
+  return [x, y];
+}
+
 export const webHidSupported = (): boolean => typeof navigator !== 'undefined' && 'hid' in navigator;
 
 /**
@@ -92,7 +110,8 @@ export class JoyConBackend extends BaseBackend {
     const sample: InputSample = {
       t: now, accel, gyro,
       orientation: this.filter.update(gyro, accel, dt),
-      buttons: { trigger: !!(b.zr || b.zl || b.r || b.l), a: !!(b.a || b.right), b: !!(b.b || b.down) }
+      buttons: { trigger: !!(b.zr || b.zl || b.r || b.l), a: !!(b.a || b.right), b: !!(b.b || b.down) },
+      stick: readStick(d)
     };
     this.emit(sample);
   }

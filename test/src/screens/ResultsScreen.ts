@@ -11,6 +11,7 @@ import type { PlayerReport } from '../progression/applyMatch';
 import { getAchievement } from '../progression/achievements';
 import { getUnlock } from '../progression/unlocks';
 import { levelFromXp } from '../progression/xp';
+import { sportHooks } from '../progression/sportHooks';
 import { Podium } from '../views/Podium';
 import { MatchScreen } from '../match/MatchHost';
 
@@ -35,7 +36,8 @@ export class ResultsScreen extends Screen {
     private readonly mode: ModeDef
   ) {
     super();
-    this.places = placesFor(summary.players.map(p => p.total));
+    const lower = sportHooks(summary.sport).lowerIsBetter?.(summary) ?? false;
+    this.places = placesFor(summary.players.map(p => (lower ? -p.total : p.total)));
     const podium = new Podium(summary.players.map((p, i) => ({ buddy: p.buddy, color: p.color, place: this.places[i] })));
     podium.calm = app.settings.get().reducedMotion;
     podium.resize(innerWidth, innerHeight);
@@ -66,8 +68,21 @@ export class ResultsScreen extends Screen {
       const mid = h('div', 'rmid', '', li);
       h('b', 'rname', p.name, mid);
       const st = p.stats;
-      h('small', 'rstats', `${t('results.strikes')} ${st.strikes ?? 0} · ${t('results.spares')} ${st.spares ?? 0} · ${t('results.gutters')} ${st.gutters ?? 0}`, mid);
+      const hooks = sportHooks(summary.sport);
+      const line = hooks.resultLine;
+      const ms = r?.profileId ? this.app.save.get(r.profileId)?.stats[summary.sport]?.[summary.mode] : undefined;
+      const bestKey = hooks.bestKey?.(summary);
+      const best = ms ? (bestKey ? ms.extras[bestKey] ?? null : ms.bestScore) : null;
+      h('small', 'rstats', line ? line(p, summary, best) : `${t('results.strikes')} ${st.strikes ?? 0} · ${t('results.spares')} ${st.spares ?? 0} · ${t('results.gutters')} ${st.gutters ?? 0}`, mid);
       if (r?.newBest) h('span', 'badge best', t('results.newBest'), mid);
+      if (p.breakdown) {
+        const det = h('details', 'breakdown', '', mid);
+        h('summary', '', t('results.breakdown'), det);
+        const tb = h('table', '', '', det);
+        const hr = h('tr', '', '', tb);
+        for (const c of p.breakdown.head) h('th', '', c, hr);
+        for (const row of p.breakdown.rows) { const tr = h('tr', '', '', tb); for (const c of row) h('td', '', c, tr); }
+      }
       if (r?.profileId) {
         const prof = this.app.save.get(r.profileId);
         if (prof) {

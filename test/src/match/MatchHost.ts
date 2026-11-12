@@ -1,11 +1,13 @@
 import type { App } from '../app';
 import { Screen, type View } from '../screens/ScreenManager';
-import { h } from '../ui/dom';
+import { button, h } from '../ui/dom';
 import { t } from '../i18n';
 import { bus } from '../core/events';
 import { Music } from '../audio/Music';
 import { sfx } from '../audio/Sfx';
-import type { MatchSetup, MatchSummary, ModeDef, SceneContext, SportScene } from '../sports/types';
+import type { MatchSetup, MatchSummary, ModeDef, SceneContext, SceneDebug, SecondInput, SportScene } from '../sports/types';
+import type { PhoneBackend } from '../input/PhoneBackend';
+import type { InputBackend } from '../input/InputBackend';
 import { applyMatch } from '../progression/applyMatch';
 import { ResultsScreen } from '../screens/ResultsScreen';
 import { PauseScreen } from '../screens/PauseScreen';
@@ -31,8 +33,9 @@ class MatchView implements View {
 }
 
 /**
- * The match screen: picks the controller, calibrates, loads the mode's scene lazily from the registry,
+ * The match screen: picks the controller(s), calibrates, loads the mode's scene lazily from the registry,
  * runs it, and hands the summary to progression and the results screen. B / Esc pauses.
+ * Split-controller modes with two players also connect and calibrate player 2's controller.
  */
 export class MatchScreen extends Screen {
   readonly name = 'match';
@@ -49,27 +52,54 @@ export class MatchScreen extends Screen {
     void this.boot();
   }
 
+  private get split(): boolean { return this.mode.splitControllers && this.setup.players.length > 1; }
+
   private async boot(): Promise<void> {
     const { app } = this;
     const { input, settings } = app;
-    let b = input.active ?? await input.select(settings.get().backend);
+    const want1 = this.split ? this.setup.controllers?.[0] ?? settings.get().backend : null;
+    let b = want1 ? await input.select(want1) : input.active ?? await input.select(settings.get().backend);
     if (!b.connected && b.kind !== 'mouse') {
       b = await input.select('mouse');
       bus.emit('toast', { title: t('hud.notConnected'), kind: 'warn' });
     }
     await input.calibrate();
+    if (this.cancelled) return;
+
+    let second: SecondInput | null = null;
+    if (this.split) {
+      const want2 = this.setup.controllers?.[1] ?? (b.kind === 'mouse' ? 'phone' : 'mouse');
+      try {
+        const b2 = await input.second.select(want2);
+        if (!b2.connected) await this.waitForSecond(b2);
+        if (this.cancelled) return;
+        await input.second.calibrate();
+        second = { backend: () => input.second.backend, swing: input.second.swing };
+      } catch {
+        bus.emit('toast', { title: t('tt.p2NoController'), kind: 'warn' });
+      }
+    }
     if (this.cancelled || !this.mode.scene) return;
+
     const factory = await this.mode.scene();
+    const debug: SceneDebug = {
+      get visible() { return app.debug.visible; },
+      text: s => app.debug.setExtra(s),
+      viz: fn => app.debug.setViz(fn)
+    };
     const ctx: SceneContext = {
       renderer: app.renderer,
       ui: this.el,
       setup: this.setup,
       backend: () => input.active,
       swing: input.swing,
+      second,
       quality: () => app.quality(),
       reducedMotion: () => settings.get().reducedMotion,
       gutterAssist: () => settings.get().gutterAssist,
+      shotAssist: () => settings.get().shotAssist,
       handed: () => settings.get().handed,
+      debug,
       onFirstTurn: () => app.tutorial.maybeShow(input.active?.kind ?? 'mouse', settings.get().tutorialSeen),
       onThrown: () => app.tutorial.onThrow(),
       onFinished: s => this.onFinished(s)
@@ -81,6 +111,29 @@ export class MatchScreen extends Screen {
     this.view = new MatchView(sport);
     sport.resize(innerWidth, innerHeight);
     sport.start();
+  }
+
+  /** Player 2 chose a phone (or a Joy-Con that hasn't answered yet): show how to connect and wait. */
+  private waitForSecond(b2: InputBackend): Promise<void> {
+    const card = h('div', 'p2-card', '', this.el);
+    h('h3', '', t('tt.p2Connect', { ctrl: t(`ctrl.${b2.kind}`) }), card);
+    const status = h('small', 'note', b2.status, card);
+    if (b2.kind === 'phone') {
+      const pb = b2 as PhoneBackend;
+      const img = h('img', 'qr', '', card);
+      img.alt = 'QR';
+      h('div', 'room', pb.room, card);
+      void pb.qrDataUrl().then(src => { img.src = src; }, () => img.remove());
+    }
+    return new Promise<void>((resolve, reject) => {
+      let timer = 0;
+      const off = b2.onStatus(s => { status.textContent = s; });
+      const done = () => { clearInterval(timer); off(); card.remove(); };
+      timer = window.setInterval(() => {
+        if (b2.connected || this.cancelled) { done(); resolve(); }
+      }, 200);
+      button(t('tt.p2Skip'), () => { done(); reject(new Error('skipped')); }, 'pbtn', card);
+    });
   }
 
   private onFinished(summary: MatchSummary): void {
@@ -115,13 +168,15 @@ export class MatchScreen extends Screen {
 
   onKey(e: KeyboardEvent): boolean {
     if (e.key === 'Tab') { e.preventDefault(); this.sport?.toggleScores?.(); return true; }
-    return false;
+    return this.sport?.onKey?.(e) ?? false;
   }
 
   exit(): void {
     this.cancelled = true;
     this.app.tutorial.hide();
     this.app.setInMatch(false);
+    this.app.input.second.release();
+    this.app.debug.setViz(null);
     // the view (and with it the scene) is disposed by the ScreenManager; dispose here if it never became a view
     if (this.sport && !this.view) this.sport.dispose();
   }

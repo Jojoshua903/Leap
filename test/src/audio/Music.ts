@@ -17,7 +17,7 @@ interface Flavour {
   lead: OscillatorType;
   bass: OscillatorType;
   swing: number;               // 0 = straight 16ths, 0.33 = triplet swing
-  drums: 'none' | 'soft' | 'groove' | 'hiphop' | 'bounce' | 'taiko';
+  drums: 'none' | 'soft' | 'groove' | 'hiphop' | 'bounce' | 'taiko' | 'march';
   pad: boolean;
   density: number;             // 0..1 melody notes per step
 }
@@ -31,11 +31,13 @@ const PENTA = [0, 2, 4, 7, 9, 12, 14];
 const SPORT_FLAVOUR: Record<string, Partial<Flavour>> = {
   default:     { bpm: 108, root: 60, scale: MAJOR, prog: [0, 4, 5, 3], lead: 'triangle', bass: 'sine', swing: 0.12, drums: 'soft', pad: true, density: 0.45 },
   bowling:     { bpm: 100, root: 58, scale: MIXO, prog: [0, 3, 0, 4], lead: 'square', bass: 'triangle', swing: 0.3, drums: 'groove', pad: false, density: 0.5 },
-  swordplay:   { bpm: 122, root: 57, scale: MINOR, prog: [0, 5, 6, 4], lead: 'sawtooth', bass: 'square', swing: 0, drums: 'taiko', pad: true, density: 0.4 },
+  // a bright 130 BPM march: brassy square lead, snare rolls; the extra layer (setLayer) is the intense part
+  swordplay:   { bpm: 130, root: 57, scale: MINOR, prog: [0, 5, 6, 4], lead: 'square', bass: 'square', swing: 0, drums: 'march', pad: true, density: 0.42 },
   airsports:   { bpm: 118, root: 62, scale: PENTA, prog: [0, 3, 4, 0], lead: 'sine', bass: 'sine', swing: 0, drums: 'soft', pad: true, density: 0.35 },
-  basketball:  { bpm: 90, root: 55, scale: DORIAN, prog: [0, 3, 0, 4], lead: 'square', bass: 'sawtooth', swing: 0.2, drums: 'hiphop', pad: false, density: 0.4 },
-  tabletennis: { bpm: 132, root: 64, scale: MAJOR, prog: [0, 5, 3, 4], lead: 'triangle', bass: 'triangle', swing: 0, drums: 'bounce', pad: false, density: 0.55 },
-  frisbee:     { bpm: 112, root: 60, scale: PENTA, prog: [0, 4, 3, 4], lead: 'triangle', bass: 'sine', swing: 0.25, drums: 'soft', pad: true, density: 0.5 }
+  basketball:  { bpm: 100, root: 55, scale: DORIAN, prog: [0, 3, 0, 4], lead: 'square', bass: 'sawtooth', swing: 0.2, drums: 'hiphop', pad: false, density: 0.4 },
+  tabletennis: { bpm: 120, root: 64, scale: MAJOR, prog: [0, 5, 3, 4], lead: 'triangle', bass: 'triangle', swing: 0, drums: 'bounce', pad: false, density: 0.55 },
+  // relaxed, acoustic-ish: plucky triangle lead and bass, a gentle shuffle
+  frisbee:     { bpm: 95, root: 62, scale: MAJOR, prog: [0, 3, 4, 3], lead: 'triangle', bass: 'triangle', swing: 0.22, drums: 'soft', pad: true, density: 0.42 }
 };
 
 function flavourFor(kind: MusicKind, sport?: string): Flavour {
@@ -60,6 +62,8 @@ const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) |
 const mtof = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
 
 class Track {
+  /** Extra layer (16th arpeggio + open hats), silent until setLayer(true). Table tennis turns it on during long rallies. */
+  layer: GainNode;
   out: GainNode;
   private nextTime = 0;
   private step = 0;
@@ -71,6 +75,9 @@ class Track {
     this.out = ctx.createGain();
     this.out.gain.value = 0;
     this.out.connect(dest);
+    this.layer = ctx.createGain();
+    this.layer.gain.value = 0;
+    this.layer.connect(this.out);
     const r = rng(seed);
     let deg = 2;
     for (let i = 0; i < 64; i++) {
@@ -136,6 +143,12 @@ class Track {
       this.leadNote(mtof(this.note(deg, 0)), t, beat * 0.45);
     }
     this.drums(inBar, t);
+    // layer: chord arpeggio on every 16th, open hat on the off-beats
+    if (this.layer.gain.value > 0.001 || this.layerOn) {
+      const arp = [0, 2, 4, 7][inBar % 4];
+      this.osc('sine', mtof(this.note(chord + arp, 1)), t, beat * 0.2, 0.035, 0.005, undefined, 0, this.layer);
+      if (inBar % 4 === 2) this.noiseHit(t, 'highpass', 6500, 0.05, 0.09, this.layer);
+    }
   }
 
   private env(g: GainNode, t: number, peak: number, attack: number, dur: number): void {
@@ -144,7 +157,9 @@ class Track {
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   }
 
-  private osc(type: OscillatorType, freq: number, t: number, dur: number, peak: number, attack: number, cutoff?: number, detune = 0): void {
+  layerOn = false;
+
+  private osc(type: OscillatorType, freq: number, t: number, dur: number, peak: number, attack: number, cutoff?: number, detune = 0, dest: AudioNode = this.out): void {
     const o = this.ctx.createOscillator(); o.type = type; o.frequency.value = freq; o.detune.value = detune;
     const g = this.ctx.createGain();
     this.env(g, t, peak, attack, dur);
@@ -152,7 +167,7 @@ class Track {
       const lp = this.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = cutoff;
       o.connect(lp).connect(g);
     } else o.connect(g);
-    g.connect(this.out);
+    g.connect(dest);
     o.start(t); o.stop(t + dur + 0.05);
   }
 
@@ -174,13 +189,13 @@ class Track {
     const g = this.ctx.createGain(); this.env(g, t, peak, 0.002, 0.22);
     o.connect(g).connect(this.out); o.start(t); o.stop(t + 0.3);
   }
-  private noiseHit(t: number, type: BiquadFilterType, freq: number, peak: number, dur: number): void {
+  private noiseHit(t: number, type: BiquadFilterType, freq: number, peak: number, dur: number, dest: AudioNode = this.out): void {
     const buf = Mixer.noise;
     if (!buf) return;
     const s = this.ctx.createBufferSource(); s.buffer = buf;
     const fl = this.ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = freq;
     const g = this.ctx.createGain(); this.env(g, t, peak, 0.002, dur);
-    s.connect(fl).connect(g).connect(this.out); s.start(t, Math.random()); s.stop(t + dur + 0.05);
+    s.connect(fl).connect(g).connect(dest); s.start(t, Math.random()); s.stop(t + dur + 0.05);
   }
 
   private drums(i: number, t: number): void {
@@ -209,6 +224,13 @@ class Track {
         if (i === 0 || i === 6 || i === 8) this.kick(t, 0.55);
         if (i === 12 || i === 14) { this.kick(t, 0.35); this.noiseHit(t, 'lowpass', 400, 0.12, 0.2); }
         if (i % 4 === 2) this.noiseHit(t, 'highpass', 6000, 0.03, 0.05);
+        return;
+      case 'march':
+        // kick on the beats, a snare on 2 and 4 and a little roll into every other bar
+        if (i % 4 === 0) this.kick(t, 0.45);
+        if (i === 4 || i === 12) this.noiseHit(t, 'bandpass', 2400, 0.2, 0.1);
+        if (i === 13 || i === 14 || i === 15) this.noiseHit(t, 'bandpass', 2600, 0.07 + 0.03 * (i - 13), 0.05);
+        if (i % 2 === 1) this.noiseHit(t, 'highpass', 8500, 0.018, 0.03);
         return;
     }
   }
@@ -242,6 +264,14 @@ class MusicImpl {
     tr.start(now + 0.05);
     this.current = tr;
     this.currentKey = key;
+  }
+
+  /** Fade the current track's extra layer in or out (table tennis: after a 10-shot rally; basketball: On Fire). */
+  setLayer(on: boolean): void {
+    const ctx = Mixer.ctx, tr = this.current;
+    if (!ctx || !tr) return;
+    tr.layerOn = on;
+    tr.layer.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.4);
   }
 
   stop(): void {

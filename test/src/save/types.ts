@@ -17,6 +17,10 @@ export interface ModeStats {
 
 /** Bowling extras keys (documented here so stats screens and achievements agree). */
 export const BOWLING_EXTRAS = ['strikes', 'spares', 'gutters', 'bestStrikeStreak', 'pins', 'wins', 'score10Total'] as const;
+/** Table tennis extras keys (Match Play and Return Challenge). */
+export const TT_EXTRAS = ['wins', 'longestRally', 'aces', 'smashes', 'spinPoints', 'longRallies', 'gamesWon', 'pointsWon', 'returns', 'targets', 'bestCombo'] as const;
+/** Basketball extras keys (3-Point Contest and Pickup). */
+export const BB_EXTRAS = ['wins', 'makes', 'attempts', 'swishes', 'points', 'moneyMade', 'perfectRacks', 'bestStreak', 'steals', 'blocks', 'assists'] as const;
 
 export interface SettingsData {
   // controller
@@ -34,6 +38,8 @@ export interface SettingsData {
   bigText: boolean;
   colorblind: boolean;
   gutterAssist: boolean;
+  /** Basketball Shot Assist: 0 Off, 1 Low, 2 High, 3 Very High. */
+  shotAssist: 0 | 1 | 2 | 3;
   // audio (0..1)
   master: number;
   music: number;
@@ -46,13 +52,13 @@ export interface SettingsData {
 export const DEFAULT_SETTINGS: SettingsData = {
   backend: 'mouse', handed: 'right', sensitivity: 1, invertHook: false,
   quality: 'high', autoQuality: true, showFps: false, reducedMotion: false,
-  highContrast: false, bigText: false, colorblind: false, gutterAssist: false,
+  highContrast: false, bigText: false, colorblind: false, gutterAssist: false, shotAssist: 2,
   master: 0.8, music: 0.6, sfx: 0.9, muted: false,
   language: 'en', tutorialSeen: false
 };
 
 /** Settings a profile may override; the rest are device-wide (audio, graphics, language). */
-export const PROFILE_SETTING_KEYS = ['handed', 'sensitivity', 'invertHook', 'gutterAssist', 'highContrast', 'bigText', 'colorblind', 'reducedMotion'] as const;
+export const PROFILE_SETTING_KEYS = ['handed', 'sensitivity', 'invertHook', 'gutterAssist', 'shotAssist', 'highContrast', 'bigText', 'colorblind', 'reducedMotion'] as const;
 export type ProfileSettingKey = typeof PROFILE_SETTING_KEYS[number];
 
 export interface Profile {
@@ -67,7 +73,7 @@ export interface Profile {
   /** stats[sport][mode] */
   stats: Record<string, Record<string, ModeStats>>;
   /** Last chosen cosmetics, so mode setup remembers them. */
-  loadout: { laneLook: string; ballSkin: string; trail: string };
+  loadout: { laneLook: string; ballSkin: string; trail: string; paddle: string; table: string; hall: string; hoopBall: string; jersey: string; net: string; court: string; dog: string; disc: string; discTrail: string; fbCourse: string; blade: string; bladeTrail: string; arena: string; outfit: string };
   createdAt: number;
 }
 
@@ -84,3 +90,6 @@ export interface ProfileExport {
   schemaVersion: number;
   profile: Profile;
 }
+
+/** Cosmetics a new profile starts with. Missing keys in older saves are filled from here (no schema bump needed). */
+export const DEFAULT_LOADOUT: Profile['loadout'] = { laneLook: 'classic', ballSkin: 'solid', trail: 'classic', paddle: 'classic', table: 'blue', hall: 'island', hoopBall: 'classic', jersey: 'home', net: 'white', court: 'gym', dog: 'mutt', disc: 'classic', discTrail: 'classic', fbCourse: 'meadow', blade: 'wood', bladeTrail: 'classic', arena: 'courtyard', outfit: 'none' };

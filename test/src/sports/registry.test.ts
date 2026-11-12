@@ -42,8 +42,45 @@ describe('sports registry', () => {
     }
   });
 
-  it('only bowling is playable for now', () => {
-    for (const m of allModes()) expect(m.status === 'playable').toBe(m.sport === 'bowling');
+  it('swordplay, bowling, basketball, table tennis and frisbee are playable, the rest is coming soon', () => {
+    const live = ['swordplay', 'bowling', 'basketball', 'tabletennis', 'frisbee'];
+    for (const m of allModes()) expect(m.status === 'playable').toBe(live.includes(m.sport));
+  });
+
+  it('swordplay: duel 1–2 (split, AI level 1–5), speed slice 1–4 with practice, showdown solo', () => {
+    const du = getMode('swordplay', 'duel'), ss = getMode('swordplay', 'speedSlice'), sd = getMode('swordplay', 'showdown');
+    expect([du.minPlayers, du.maxPlayers, du.splitControllers, du.practice]).toEqual([1, 2, true, false]);
+    expect([ss.minPlayers, ss.maxPlayers, ss.practice]).toEqual([1, 4, true]);
+    expect([sd.minPlayers, sd.maxPlayers, sd.practice]).toEqual([1, 1, false]);
+    expect(defaultOptions(du)).toEqual({ rounds: 3, ai: 2 });
+    expect(du.options.find(o => o.id === 'ai')!.choices.map(c => c.value)).toEqual([1, 2, 3, 4, 5]);
+    expect(du.cosmetics).toEqual(['blade', 'bladeTrail', 'arena', 'outfit']);
+  });
+
+  it('basketball: contest for 1–4 with a money-rack option, pickup solo to 11 or 21', () => {
+    const tp = getMode('basketball', 'threePoint'), pu = getMode('basketball', 'pickup');
+    expect([tp.minPlayers, tp.maxPlayers, tp.practice]).toEqual([1, 4, true]);
+    expect([pu.minPlayers, pu.maxPlayers, pu.practice]).toEqual([1, 1, false]);
+    expect(defaultOptions(tp)).toEqual({ moneyRack: false });
+    expect(defaultOptions(pu)).toEqual({ target: 11, difficulty: 'normal' });
+    expect(tp.cosmetics).toEqual(['hoopball', 'jersey', 'net', 'court']);
+  });
+
+  it('table tennis: match play for 1–2 with split controllers, return challenge solo', () => {
+    const mp = getMode('tabletennis', 'matchPlay'), rc = getMode('tabletennis', 'returnChallenge');
+    expect([mp.minPlayers, mp.maxPlayers, mp.splitControllers]).toEqual([1, 2, true]);
+    expect([rc.minPlayers, rc.maxPlayers]).toEqual([1, 1]);
+    expect(defaultOptions(mp)).toEqual({ games: 3, ai: 1 });
+    expect(mp.cosmetics).toEqual(['paddle', 'table', 'hall']);
+  });
+
+  it('frisbee: dog and golf for 1–4 with practice, golf aim aid Short by default', () => {
+    const dog = getMode('frisbee', 'frisbeeDog'), golf = getMode('frisbee', 'frisbeeGolf');
+    expect([dog.minPlayers, dog.maxPlayers, dog.practice]).toEqual([1, 4, true]);
+    expect([golf.minPlayers, golf.maxPlayers, golf.practice]).toEqual([1, 4, true]);
+    expect(dog.cosmetics).toEqual(['dog', 'disc', 'discTrail']);
+    expect(golf.cosmetics).toEqual(['course', 'disc', 'discTrail']);
+    expect(defaultOptions(golf)).toEqual({ aids: 'short' });
   });
 
   it('every sport has an accent colour and icon', () => {

@@ -337,6 +337,18 @@ export function buildBuddy(cfg: BuddyConfig): BuddyRig {
       hb.rotation.x = Math.PI / 2 - 0.15; hb.position.y = R0 * 0.38;
       break;
     }
+    case 'visor': {
+      const hb = part(geo(new THREE.TorusGeometry(R0 * 1.04, 0.028, 8, 28)), accMat, 0.04, head);
+      hb.rotation.x = Math.PI / 2 - 0.12; hb.position.y = R0 * 0.42;
+      const bill = part(geo(new THREE.CylinderGeometry(R0 * 0.85, R0 * 0.85, 0.022, 20, 1, false, -Math.PI / 2, Math.PI)), mat('#ffffff'), 0.04, head);
+      bill.position.set(0, R0 * 0.36, R0 * 0.8); bill.rotation.x = 0.18;
+      break;
+    }
+    case 'bucket': {
+      const crown = part(geo(new THREE.CylinderGeometry(R0 * 0.95, R0 * 1.1, R0 * 0.62, 20)), accMat, 0.04, head); crown.position.y = R0 * 0.82;
+      const brim = part(geo(new THREE.CylinderGeometry(R0 * 1.15, R0 * 1.5, R0 * 0.22, 24, 1, true)), accMat, 0.04, head); brim.position.y = R0 * 0.48;
+      break;
+    }
     default: break;
   }
 

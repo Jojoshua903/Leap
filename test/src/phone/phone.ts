@@ -9,6 +9,7 @@ import { signalUrl } from '../input/signal';
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 const statusEl = $('status'), rateEl = $('rate');
 const startBtn = $<HTMLButtonElement>('start'), holdBtn = $<HTMLButtonElement>('hold'), aBtn = $<HTMLButtonElement>('a'), bBtn = $<HTMLButtonElement>('b');
+const pad = $('pad'), knob = $('knob');
 const room = (new URLSearchParams(location.search).get('room') ?? '').toUpperCase();
 const D2R = Math.PI / 180;
 
@@ -19,6 +20,8 @@ let dc: RTCDataChannel | null = null;
 let pc: RTCPeerConnection | null = null;
 let ws: WebSocket | null = null;
 let trigger: 0 | 1 = 0, aDown: 0 | 1 = 0, bDown: 0 | 1 = 0;
+/** Touch joystick (basketball movement): x right, y forward (up the screen), −1..1. */
+let stickX = 0, stickY = 0;
 let accelSign = 1;            // some older iOS versions report accelerationIncludingGravity inverted
 const signProbe: number[] = [];
 let count = 0, lastRateT = performance.now();
@@ -43,6 +46,7 @@ startBtn.onclick = async () => {
   holdBtn.style.display = 'block';
   aBtn.style.display = 'block';
   bBtn.style.display = 'block';
+  pad.style.display = 'block';
   window.addEventListener('devicemotion', onMotion);
   connect();
 };
@@ -58,6 +62,24 @@ press(holdBtn, v => { trigger = v; });
 press(aBtn, v => { aDown = v; });
 press(bBtn, v => { bDown = v; });
 
+// touch joystick: the knob follows the thumb inside the pad, springs back on release
+let padId = -1;
+const moveKnob = (e: PointerEvent): void => {
+  const r = pad.getBoundingClientRect();
+  const R = r.width / 2;
+  let x = (e.clientX - r.left - R) / R, y = -(e.clientY - r.top - R) / R;
+  const m = Math.hypot(x, y);
+  if (m > 1) { x /= m; y /= m; }
+  const dead = m < 0.15;
+  stickX = dead ? 0 : x; stickY = dead ? 0 : y;
+  knob.style.transform = `translate(${x * R * 0.6}px, ${-y * R * 0.6}px)`;
+};
+pad.addEventListener('pointerdown', e => { e.preventDefault(); padId = e.pointerId; pad.setPointerCapture(e.pointerId); moveKnob(e); });
+pad.addEventListener('pointermove', e => { if (e.pointerId === padId) moveKnob(e); });
+const release = (e: PointerEvent): void => { if (e.pointerId !== padId) return; padId = -1; stickX = 0; stickY = 0; knob.style.transform = ''; };
+pad.addEventListener('pointerup', release);
+pad.addEventListener('pointercancel', release);
+
 function onMotion(e: DeviceMotionEvent): void {
   const ag = e.accelerationIncludingGravity, rr = e.rotationRate;
   if (!ag || !rr || ag.x === null || ag.y === null || ag.z === null) return;
@@ -68,7 +90,7 @@ function onMotion(e: DeviceMotionEvent): void {
   }
   const px = ag.x * accelSign, py = ag.y * accelSign, pz = ag.z * accelSign;
   const beta = (rr.beta ?? 0) * D2R, gamma = (rr.gamma ?? 0) * D2R, alpha = (rr.alpha ?? 0) * D2R;
-  const packet = [performance.now(), px, pz, -py, beta, alpha, -gamma, trigger, aDown, bDown];
+  const packet = [performance.now(), px, pz, -py, beta, alpha, -gamma, trigger, aDown, bDown, Math.round(stickX * 100) / 100, Math.round(stickY * 100) / 100];
   if (dc?.readyState === 'open') dc.send(JSON.stringify(packet));
   count++;
   const now = performance.now();

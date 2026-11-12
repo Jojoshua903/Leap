@@ -65,6 +65,8 @@ export class SettingsScreen extends Screen {
     chips(ctl, [{ value: 'right' as const, label: t('settings.right') }, { value: 'left' as const, label: t('settings.left') }], s.handed, v => { sfx.tick(); this.set({ handed: v }); });
     slider(ctl, t('settings.sensitivity'), s.sensitivity, v => this.set({ sensitivity: v }), 0.5, 1.5, 0.05);
     toggle(ctl, t('settings.invertHook'), s.invertHook, v => { sfx.toggle(v); this.set({ invertHook: v }); });
+    h('div', 'label', t('settings.shotAssist'), ctl);
+    chips(ctl, ([0, 1, 2, 3] as const).map(v => ({ value: v, label: t(`settings.assist.${v}`) })), s.shotAssist, v => { sfx.tick(); this.set({ shotAssist: v }); });
 
     /* graphics */
     const gfx = section(left, t('settings.graphics'));

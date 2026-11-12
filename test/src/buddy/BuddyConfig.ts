@@ -2,8 +2,8 @@
  * A Buddy is the player's avatar. The config is plain JSON so it can live in saves and exports.
  * Every look field is an index into a palette or list below, which keeps validation trivial.
  */
-export type Accessory = 'none' | 'hat' | 'cap' | 'glasses' | 'headband';
-export const ACCESSORIES: Accessory[] = ['none', 'hat', 'cap', 'glasses', 'headband'];
+export type Accessory = 'none' | 'hat' | 'cap' | 'glasses' | 'headband' | 'visor' | 'bucket';
+export const ACCESSORIES: Accessory[] = ['none', 'hat', 'cap', 'glasses', 'headband', 'visor', 'bucket'];
 
 export interface BuddyConfig {
   v: 1;

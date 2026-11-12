@@ -6,6 +6,7 @@ import { SPORTS } from '../sports/registry';
 import { SPORT_ICONS } from '../sports/icons';
 import { achievementsFor } from '../progression/achievements';
 import { levelFromXp } from '../progression/xp';
+import { sportHooks } from '../progression/sportHooks';
 import { buddyAvatar } from '../buddy/BuddyAvatar';
 
 /** Per-sport, per-mode stats for the active profile, its level, and the achievement board. */
@@ -45,18 +46,20 @@ export class StatsScreen extends Screen {
         if (!playable.length) { h('small', 'note', t('stats.later'), sec); continue; }
         const table = h('table', 'stat-table', '', sec);
         const hr = table.insertRow();
-        for (const k of ['', 'stats.games', 'stats.best', 'stats.avg', 'stats.strikes', 'stats.spares', 'stats.gutters', 'stats.streak']) {
+        const cols = sportHooks(s.id).statColumns;
+        const heads = cols ? cols.map(c => c.labelKey) : ['stats.games', 'stats.best', 'stats.avg', 'stats.strikes', 'stats.spares', 'stats.gutters', 'stats.streak'];
+        for (const k of ['', ...heads]) {
           const th = document.createElement('th'); th.textContent = k ? t(k) : ''; hr.appendChild(th);
         }
         for (const m of playable) {
           const ms = p.stats[s.id]?.[m.id];
           const r = table.insertRow();
           r.insertCell().textContent = t(m.nameKey);
-          if (!ms || !ms.gamesPlayed) { const c = r.insertCell(); c.colSpan = 7; c.textContent = t('stats.noGames'); c.className = 'muted'; continue; }
+          if (!ms || !ms.gamesPlayed) { const c = r.insertCell(); c.colSpan = heads.length; c.textContent = t('stats.noGames'); c.className = 'muted'; continue; }
           const x = ms.extras;
-          for (const v of [ms.gamesPlayed, ms.bestScore, Math.round(ms.totalScore / ms.gamesPlayed), x.strikes ?? 0, x.spares ?? 0, x.gutters ?? 0, x.bestStrikeStreak ?? 0]) {
-            r.insertCell().textContent = String(v);
-          }
+          const values = cols ? cols.map(c => c.value(ms, m.id))
+            : [ms.gamesPlayed, ms.bestScore, Math.round(ms.totalScore / ms.gamesPlayed), x.strikes ?? 0, x.spares ?? 0, x.gutters ?? 0, x.bestStrikeStreak ?? 0];
+          for (const v of values) r.insertCell().textContent = String(v);
         }
         const achs = achievementsFor(s.id);
         if (achs.length) {

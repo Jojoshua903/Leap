@@ -6,7 +6,7 @@ import { levelFromXp } from './xp';
  * (so they are never taken away), and `isUnlocked` also accepts defaults. Guests only get defaults.
  * Other sports add items with `registerUnlock`.
  */
-export type UnlockCategory = 'lane' | 'ball' | 'trail' | 'hair' | 'top' | 'acc';
+export type UnlockCategory = 'lane' | 'ball' | 'trail' | 'hair' | 'top' | 'acc' | 'paddle' | 'table' | 'hall' | 'hoopball' | 'jersey' | 'net' | 'court' | 'dog' | 'disc' | 'discTrail' | 'course' | 'blade' | 'bladeTrail' | 'arena' | 'outfit';
 export type Requirement =
   | { type: 'default' }
   | { type: 'level'; n: number }

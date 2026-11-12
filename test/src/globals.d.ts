@@ -7,6 +7,9 @@ declare module 'joy-con-webhid' {
     actualAccelerometer?: { x: number; y: number; z: number };              // in G
     actualGyroscope?: { rps: { x: number; y: number; z: number } };         // rad/s
     buttonStatus?: Record<string, boolean>;
+    /** Stick deflection as strings like "-0.4" (roughly −1..1). */
+    analogStickRight?: { horizontal: string; vertical: string };
+    analogStickLeft?: { horizontal: string; vertical: string };
   }
   export interface JoyCon extends EventTarget {
     device: { productName: string; opened: boolean };
