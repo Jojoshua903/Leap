@@ -1,0 +1,31 @@
+{
+  "name": "breezy-bowling",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "signal": "tsx server/signal.ts",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.14.0",
+    "joy-con-webhid": "^0.6.0",
+    "qrcode": "^1.5.4",
+    "three": "^0.180.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/three": "^0.180.0",
+    "@types/ws": "^8.5.12",
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0",
+    "vitest": "^2.1.0"
+  }
+}

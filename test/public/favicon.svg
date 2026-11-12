@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Breezy Isle Sports: a menu tile with the island, a palm and a bowling pin. Drawn in code, no assets. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f9bf0"/>
+      <stop offset="0.62" stop-color="#9fdcff"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1aa6c9"/>
+      <stop offset="1" stop-color="#37c6dc"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="3" y="3" width="58" height="58" rx="14"/></clipPath>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="64" height="64" fill="url(#sky)"/>
+    <!-- sun -->
+    <circle cx="47" cy="17" r="10" fill="#ffd27a"/>
+    <circle cx="47" cy="17" r="6.5" fill="#fff1b8"/>
+    <!-- sea + wave -->
+    <rect y="41" width="64" height="23" fill="url(#sea)"/>
+    <path d="M2 52q6-3 12 0t12 0t12 0t12 0t12 0" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".85"/>
+    <!-- island -->
+    <ellipse cx="25" cy="44" rx="21" ry="7" fill="#fff3c4"/>
+    <ellipse cx="22" cy="41.5" rx="14" ry="5.5" fill="#57c34a"/>
+    <!-- palm -->
+    <path d="M19 42q-1-11 6-21" stroke="#8a5328" stroke-width="4.2" fill="none" stroke-linecap="round"/>
+    <g fill="#2f9c48" stroke="#1f6e33" stroke-width="1">
+      <path d="M25 21q-9-4-15 2q8-1 15-2z"/>
+      <path d="M25 21q-3-9-11-9q6 4 11 9z"/>
+      <path d="M25 21q5-9 13-7q-7 2-13 7z"/>
+      <path d="M25 21q10-2 13 5q-7-4-13-5z"/>
+    </g>
+    <circle cx="25.5" cy="22" r="2.2" fill="#8a5328"/>
+    <!-- bowling pin -->
+    <path d="M44 23c-2.6 0-3.6 2.2-3.1 4.6c.4 1.8 1.2 2.8.6 4.6c-1.6 3.2-3.5 6-3.5 9.6c0 2.8 1.2 4.7 2.2 5.7h7.6c1-1 2.2-2.9 2.2-5.7c0-3.6-1.9-6.4-3.5-9.6c-.6-1.8.2-2.8.6-4.6c.5-2.4-.5-4.6-3.1-4.6z"
+      fill="#ffffff" stroke="#1d3a52" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M41.6 33.2h4.8M41.2 35.4h5.6" stroke="#e2232e" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+  <!-- white tile border like the menu tiles -->
+  <rect x="3" y="3" width="58" height="58" rx="14" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <rect x="1.2" y="1.2" width="61.6" height="61.6" rx="15.5" fill="none" stroke="#1d3a52" stroke-opacity=".35" stroke-width="1.2"/>
+</svg>

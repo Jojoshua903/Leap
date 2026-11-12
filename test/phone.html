@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Breezy Isle Controller</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#3fa9f5" />
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #bfe9ff; color: #1d3a52;
+      -webkit-user-select: none; user-select: none; touch-action: none; overscroll-behavior: none; }
+    main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 20px; box-sizing: border-box; text-align: center; }
+    #status { font-size: 18px; font-weight: 600; }
+    #rate { font-size: 13px; opacity: .7; }
+    button { font: inherit; font-weight: 800; border: 5px solid #fff; border-radius: 28px; padding: 18px 28px; font-size: 22px;
+      background: linear-gradient(#ffd27a, #ffad33); color: #7a3d00; box-shadow: 0 6px 14px rgba(0,0,0,.2); }
+    #hold { width: 78vw; height: 42vh; border-radius: 40px; font-size: 30px; display: none; background: linear-gradient(#e2f6ff, #7fcff5); color: #1d3a52; }
+    #hold.down { background: linear-gradient(#ffd27a, #ff8a3c); color: #7a3d00; transform: scale(.98); }
+    .row { display: flex; gap: 18px; }
+    #a, #b { display: none; font-size: 20px; padding: 14px 30px; min-width: 96px; }
+    #b { background: linear-gradient(#ffffff, #d9e6ee); color: #1d3a52; }
+    #a.down, #b.down { transform: scale(.95); }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="status">Connecting…</div>
+    <button id="start">Tap to enable motion</button>
+    <button id="hold">HOLD TO THROW</button>
+    <div class="row"><button id="b">B · Back</button><button id="a">A</button></div>
+    <div id="rate"></div>
+  </main>
+  <script type="module" src="/src/phone/phone.ts"></script>
+</body>
+</html>
