@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extra Innings · Phase 1 Test Room</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="play.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ================= HUD ================= -->
+<div id="hud">
+  <div class="hud-portrait">
+    <svg viewBox="0 0 60 60"><circle cx="30" cy="32" r="20" fill="#f3ead8" stroke="#0d0b10" stroke-width="4"/><path d="M10 30 Q12 10 31 10 Q50 10 51 28 L60 30 Q56 24 50 26" fill="#e8361c" stroke="#0d0b10" stroke-width="4" stroke-linejoin="round"/><path d="M21 34 L28 32 M35 32 L42 34" stroke="#0d0b10" stroke-width="3.5" stroke-linecap="round"/><path d="M24 43 Q32 49 40 41" fill="none" stroke="#0d0b10" stroke-width="3" stroke-linecap="round"/></svg>
+  </div>
+  <div class="hud-stack">
+    <div class="hp" id="hp"></div>
+    <div class="hype" id="hype">
+      <div class="hype-fill" id="hypeFill"></div>
+      <i style="left:33.3%"></i><i style="left:66.6%"></i>
+      <label>HYPE</label>
+    </div>
+    <div class="balls" id="balls"></div>
+  </div>
+</div>
+
+<div id="combo"><b id="comboN">0</b><small>HIT COMBO</small></div>
+
+<aside id="drills">
+  <header><span>TEST ROOM DRILLS</span><b id="drillCount">0/10</b></header>
+  <ol id="drillList"></ol>
+</aside>
+
+<div id="hint">
+  <span><kbd>A</kbd><kbd>D</kbd> Run</span>
+  <span><kbd>Space</kbd> Jump</span>
+  <span><kbd>J</kbd> Swing</span>
+  <span><kbd>K</kbd> Ball</span>
+  <span><kbd>Shift</kbd> Dash</span>
+  <span><kbd>H</kbd> Heal</span>
+  <span><kbd>T</kbd> Tune</span>
+  <span><kbd>Esc</kbd> Pause</span>
+</div>
+
+<!-- ================= INTRO CARD ================= -->
+<div id="intro" class="overlay show">
+  <div class="card intro-card">
+    <p class="eyebrow">PHASE 1 · THE PROTOTYPE</p>
+    <h1>THE TEST ROOM</h1>
+    <p class="lede">A white‑box batting cage under the Spire. Run every drill, then tune the numbers until Nathan feels <em>exactly</em> right.</p>
+    <div class="intro-grid">
+      <div><kbd>A</kbd><kbd>D</kbd><span>Run</span></div>
+      <div><kbd>Space</kbd><span>Jump · hold for height · double jump</span></div>
+      <div><kbd>Shift</kbd><span>Air dash</span></div>
+      <div><kbd>J</kbd><span>Swing · 3‑hit combo · <kbd>↑</kbd>/<kbd>↓</kbd> to aim</span></div>
+      <div><kbd>K</kbd> → <kbd>J</kbd><span>Throw &amp; smack a ball: Bat‑Launch</span></div>
+      <div><kbd>H</kbd><span>Hold to burn Hype &amp; heal</span></div>
+      <div><kbd>↑</kbd><span>At a bench: rest &amp; respawn enemies</span></div>
+      <div><kbd>T</kbd><span>Open the feel‑tuning panel</span></div>
+    </div>
+    <p class="pad">🎮 Controller supported · A jump · X swing · Y ball · B dash · RB heal</p>
+    <button class="btn primary" id="startBtn">PLAY BALL!</button>
+  </div>
+</div>
+
+<!-- ================= PAUSE ================= -->
+<div id="pause" class="overlay">
+  <div class="card pause-card">
+    <p class="eyebrow">TIMEOUT</p>
+    <h1>PAUSED</h1>
+    <nav>
+      <button class="pbtn" data-p="resume">Resume</button>
+      <button class="pbtn" data-p="tune">Tune the Feel</button>
+      <button class="pbtn" data-p="reset">Reset Drills</button>
+      <button class="pbtn" data-p="restart">Restart Room</button>
+      <button class="pbtn" data-p="menu">Main Menu</button>
+    </nav>
+    <div class="row"><label>Volume</label><input type="range" id="vol" min="0" max="100" value="70"></div>
+  </div>
+</div>
+
+<!-- ================= TUNING PANEL ================= -->
+<aside id="tune">
+  <header>
+    <div><p class="eyebrow">JOSH'S WORKBENCH</p><h2>Feel Tuning</h2></div>
+    <button id="tuneClose" aria-label="Close">✕</button>
+  </header>
+  <div class="tune-toggles">
+    <label><input type="checkbox" id="optBoxes"> Hitboxes</label>
+    <label><input type="checkbox" id="optSlow"> Slow‑mo</label>
+    <label><input type="checkbox" id="optHype"> Infinite Hype</label>
+    <label><input type="checkbox" id="optGod"> No damage</label>
+  </div>
+  <div class="tune-stats" id="tuneStats"></div>
+  <div id="tuneGroups"></div>
+  <footer>
+    <button class="btn" id="tuneReset">Reset defaults</button>
+    <button class="btn primary" id="tuneExport">Export numbers</button>
+  </footer>
+  <textarea id="tuneOut" readonly hidden></textarea>
+</aside>
+
+<div id="toast"></div>
+
+<script src="game/audio.js"></script>
+<script src="game/core.js"></script>
+<script src="game/level.js"></script>
+<script src="game/entities.js"></script>
+<script src="game/player.js"></script>
+<script src="game/render.js"></script>
+<script src="game/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extra Innings</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Ambient world: parallax spire + embers -->
+<canvas id="world"></canvas>
+<div class="grain"></div>
+<div class="vignette"></div>
+
+<!-- ============ BOOT / LOADING ============ -->
+<section id="loader" class="screen active">
+  <div class="load-block">
+    <svg viewBox="0 0 100 100" class="load-ball" aria-hidden="true">
+      <circle cx="50" cy="50" r="40" fill="none" stroke="#f3ead8" stroke-width="6"/>
+      <path d="M24 28 Q40 50 24 72" fill="none" stroke="#e8361c" stroke-width="5" stroke-dasharray="6 5"/>
+      <path d="M76 28 Q60 50 76 72" fill="none" stroke="#e8361c" stroke-width="5" stroke-dasharray="6 5"/>
+    </svg>
+    <div class="load-text">
+      <span id="loadStatus">Loading</span>
+      <div class="load-bar"><div class="load-fill" id="loadFill"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TITLE / PRESS START ============ -->
+<section id="title" class="screen">
+  <p class="studio-credit">IBRAHIM INTERACTIVE PRESENTS</p>
+  <div class="logo" id="logo">
+    <div class="logo-top"><span>E</span><span>X</span><span>T</span><span>R</span><span>A</span></div>
+    <div class="logo-main" data-text="INNINGS">INNINGS</div>
+    <div class="logo-slash"></div>
+    <div class="logo-sub">THE SPIRE AWAITS ITS CHAMPION</div>
+  </div>
+  <p class="press-start">— PRESS ANY KEY —</p>
+</section>
+
+<!-- ============ MAIN MENU ============ -->
+<section id="menu" class="screen">
+  <div class="menu-left">
+    <div class="logo small">
+      <div class="logo-top">EXTRA</div>
+      <div class="logo-main" data-text="INNINGS">INNINGS</div>
+    </div>
+
+    <nav class="menu-list" id="menuList">
+      <button class="mi" data-action="continue"><span class="mi-num">01</span><span class="mi-label">Continue</span><span class="mi-meta">Phase 1 · The Test Room</span></button>
+      <button class="mi" data-action="new"><span class="mi-num">02</span><span class="mi-label">New Game</span><span class="mi-meta">Step up to the plate</span></button>
+      <button class="mi" data-action="load"><span class="mi-num">03</span><span class="mi-label">Load Game</span><span class="mi-meta">3 save slots</span></button>
+      <button class="mi" data-action="options"><span class="mi-num">04</span><span class="mi-label">Options</span><span class="mi-meta">Audio · Video · Controls</span></button>
+      <button class="mi" data-action="extras"><span class="mi-num">05</span><span class="mi-label">The Dugout</span><span class="mi-meta">Roster &amp; Bestiary</span></button>
+      <button class="mi" data-action="credits"><span class="mi-num">06</span><span class="mi-label">Credits</span><span class="mi-meta">The crew</span></button>
+      <button class="mi danger" data-action="quit"><span class="mi-num">07</span><span class="mi-label">Quit</span><span class="mi-meta">Forfeit the match</span></button>
+    </nav>
+  </div>
+
+  <div class="menu-right">
+    <div class="hero">
+      <div class="hero-glow"></div>
+      <svg class="hero-svg" viewBox="0 0 300 420" aria-label="Nathan">
+        <!-- bat -->
+        <g class="hero-bat">
+          <path d="M196 60 L262 -10 Q272 -18 280 -8 Q288 2 278 12 L212 82 Z" fill="#c9a36b" stroke="#0d0b10" stroke-width="6" stroke-linejoin="round"/>
+          <path d="M208 70 L198 80" stroke="#0d0b10" stroke-width="10" stroke-linecap="round"/>
+        </g>
+        <!-- body -->
+        <path d="M110 160 Q150 140 190 160 L205 290 Q150 305 95 290 Z" fill="#e8361c" stroke="#0d0b10" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M150 150 L150 295" stroke="#0d0b10" stroke-width="3" stroke-dasharray="6 5"/>
+        <text x="122" y="235" font-family="Impact, Arial Black, sans-serif" font-size="46" fill="#f3ead8" stroke="#0d0b10" stroke-width="2">7</text>
+        <!-- arms -->
+        <path d="M188 170 Q215 120 205 78" fill="none" stroke="#0d0b10" stroke-width="22" stroke-linecap="round"/>
+        <path d="M188 170 Q215 120 205 78" fill="none" stroke="#e8361c" stroke-width="12" stroke-linecap="round"/>
+        <path d="M112 172 Q80 220 92 250" fill="none" stroke="#0d0b10" stroke-width="22" stroke-linecap="round"/>
+        <path d="M112 172 Q80 220 92 250" fill="none" stroke="#e8361c" stroke-width="12" stroke-linecap="round"/>
+        <!-- legs -->
+        <path d="M120 290 L108 390" stroke="#0d0b10" stroke-width="30" stroke-linecap="round"/>
+        <path d="M180 290 L198 390" stroke="#0d0b10" stroke-width="30" stroke-linecap="round"/>
+        <path d="M120 290 L110 370" stroke="#f3ead8" stroke-width="16" stroke-linecap="round"/>
+        <path d="M180 290 L195 370" stroke="#f3ead8" stroke-width="16" stroke-linecap="round"/>
+        <!-- head -->
+        <circle cx="150" cy="110" r="42" fill="#f3ead8" stroke="#0d0b10" stroke-width="6"/>
+        <path d="M106 102 Q110 58 152 60 Q192 60 196 100 L218 104 Q210 92 196 96" fill="#e8361c" stroke="#0d0b10" stroke-width="6" stroke-linejoin="round"/>
+        <path d="M128 116 L144 112 M160 112 L176 116" stroke="#0d0b10" stroke-width="6" stroke-linecap="round"/>
+        <path d="M134 134 Q152 146 172 130" fill="none" stroke="#0d0b10" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+      <div class="hero-shadow"></div>
+    </div>
+    <div class="quote-card" id="quoteCard">
+      <p class="quote-text" id="quoteText">"MVP BABY!"</p>
+      <p class="quote-who" id="quoteWho">— Nathan</p>
+    </div>
+  </div>
+
+  <div class="hype-meter">
+    <span>HYPE</span>
+    <div class="hype-pips"><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <footer class="menu-foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+    <span><kbd>Enter</kbd> Select</span>
+    <span><kbd>Esc</kbd> Back</span>
+    <span class="ver">Ibrahim Interactive · v0.1.0</span>
+  </footer>
+</section>
+
+<!-- ============ PANELS ============ -->
+<div id="panelWrap" class="panel-wrap">
+  <div class="panel" id="panel">
+    <button class="panel-close" id="panelClose" aria-label="Close">✕</button>
+    <div id="panelBody"></div>
+  </div>
+</div>
+
+<!-- Comic impact pop layer -->
+<div id="fx"></div>
+
+<!-- Transition wipe -->
+<div id="wipe"><div class="wipe-ball"></div></div>
+
+<script src="https://artifactcdn.diabrowser.engineering/ajax/libs/gsap/gsap.min.js"></script>
+<script src="app.js"></script>
+<script src="panels.js"></script>
+</body>
+</html>
